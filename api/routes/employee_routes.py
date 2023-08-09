@@ -5,7 +5,8 @@ import json
 
 employee_ms = Blueprint('employee', __name__)
 
-producer = KafkaProducer(bootstrap_servers='localhost:9092')
+producer = KafkaProducer(bootstrap_servers='kafka1:9092',
+                         api_version=(2,0,2))
 
 @employee_ms.route('/employees', methods=['POST'])
 def create_employee():
@@ -18,7 +19,15 @@ def create_employee():
 def get_employee(id):
     employee_data = EmployeeService.get_employee(id)
     message = {'action': 'read', 'employee': employee_data.json}
-    producer.send('employee-events', value=json.dumps(message).encode('utf-8'))
+    try:
+        future = producer.send('employee-events', value=json.dumps(message).encode('utf-8'))
+        record_data = future.get(timeout=60)
+        print(f"Message sent to topic {record_data.topic}  at partition {record_data.partition} offset {record_data.offset}")
+    except Exception as e:
+        print(f"failed to send a message: {e}", flush=True)
+    finally:
+        producer.close()
+        print("Producer closed", flush=True)
     return employee_data
 
 @employee_ms.route('/employees/<int:id>', methods=['PUT'])

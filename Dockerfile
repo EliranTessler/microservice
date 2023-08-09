@@ -1,21 +1,21 @@
-# Use an official Python runtime as a parent image
-FROM python:3.9-slim
+# Use the official Python image as the base image
+FROM python:3.8-slim
 
-# Set the working directory to /app
+# Set the working directory within the container
 WORKDIR /app
 
-# Copy the current directory contents into the container at /app
-COPY . /app
+# Copy the requirements file and install dependencies
+COPY requirements.txt requirements.txt
+RUN pip install -r requirements.txt
+RUN pip install python-dotenv
 
-# Install any needed packages specified in requirements.txt
-RUN pip install --trusted-host pypi.python.org -r requirements.txt
-RUN pip install kafka-python  
+# Copy the rest of the application code into the container
+COPY . .
 
-# Make port 80 available to the world outside this container
-EXPOSE 80
+# Expose the port that the Flask app will run on
+EXPOSE 5000
 
-# Define environment variable
-ENV NAME World
+ENV DATABASE_URI=sqlite:///employees.sqlite3
 
-# Run app.py when the container launches
-CMD ["python3", "app.py"]
+# Start the Flask app when the container starts
+CMD ["flask", "run", "--host", "0.0.0.0"]
